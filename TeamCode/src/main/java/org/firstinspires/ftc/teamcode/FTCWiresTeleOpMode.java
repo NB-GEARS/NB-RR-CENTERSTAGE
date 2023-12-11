@@ -1,5 +1,7 @@
 package org.firstinspires.ftc.teamcode;
 
+import static com.qualcomm.robotcore.hardware.Servo.Direction.REVERSE;
+
 import android.text.method.Touch;
 
 import com.acmerobotics.dashboard.FtcDashboard;
@@ -59,13 +61,13 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
 
         boolean pixelZeroLock = false;
         boolean pixelOneLock = false; // Logic for PixelLock1
-        int ExtendLimit = 5000;
-        int PullLimit = -0;
+        int ExtendLimit = 5650;
+        int PullLimit = -500;
         int RotateLimit = 0;
         int LastRotatePosition = 0;
-        int ServoZeroPostion = 0;
-        int ServoOnePosition = 0;
-        int ServoFlipPosition = 0;
+        double ServoZeroPosition = 1;
+        double ServoOnePosition = 0.75;
+        double ServoFlipPosition = 1;
 
 
         ArmExtend_MOTOR = hardwareMap.get(DcMotor.class,"ArmExtend_MOTOR");
@@ -82,10 +84,10 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
 
 
         PlaneServo = hardwareMap.get(Servo.class, "Plane_SERVO");
-        //PixelZeroServo = hardwareMap.get(Servo.class, "PixelZero_SERVO");  //TODO map to controller let controllelr know
-        //PixelOneServo = hardwareMap.get(Servo.class, "PixelOne_SERVO");
-        //ArmFlip_SERVO = hardwareMap.get(Servo.class,"ArmFlip_SERVO");
-
+        PixelZeroServo = hardwareMap.get(Servo.class, "PixelZero_SERVO");  //TODO map to controller let controllelr know
+        PixelOneServo = hardwareMap.get(Servo.class, "PixelOne_SERVO");
+        ArmFlip_SERVO = hardwareMap.get(Servo.class,"ArmFlip_SERVO");
+        ArmFlip_SERVO.setDirection(REVERSE);
 
         ArmPullLimit = hardwareMap.get(TouchSensor.class,"ArmPullLimit");
         ArmUpLimit = hardwareMap.get(TouchSensor.class,"ArmUpLimit");
@@ -135,25 +137,25 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
                 //telemetry.addData("RF Encoder", drive.rightFront.getCurrentPosition());
                 //telemetry.addData("RB Encoder", drive.rightBack.getCurrentPosition());
 
-                 // PixelZeroServo.setPosition(ServoZeroPostion); // TODO
-                 // PixelOneServo.setPosition(ServoOnePosition); //TODO while both this loop it always send command ensure servo at defined postion
-                // ArmFlip_SERVO.setPosition(ServoFlipPosition); // TODO
+                 PixelZeroServo.setPosition(ServoZeroPosition); // TODO
+                 PixelOneServo.setPosition(ServoOnePosition); //TODO while both this loop it always send command ensure servo at defined postion
+                 ArmFlip_SERVO.setPosition(ServoFlipPosition); // TODO
 
 
-                if (gamepad1.left_trigger > 0.1 && (ArmExtend_MOTOR.getCurrentPosition() < ExtendLimit)) { // If left trigger, extend arm propotional to amount with speed
-                    ArmExtend_MOTOR.setTargetPosition((int) ((ArmExtend_MOTOR.getCurrentPosition())+(1000 * gamepad1.left_trigger)));
+                if (gamepad2.right_trigger > 0.1 && (ArmExtend_MOTOR.getCurrentPosition() < ExtendLimit)) { // If left trigger, extend arm propotional to amount with speed
+                    ArmExtend_MOTOR.setTargetPosition((int) ((ArmExtend_MOTOR.getCurrentPosition())+(1000 * gamepad2.right_trigger)));
                     ArmExtend_MOTOR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    if(ArmExtend_MOTOR.getCurrentPosition() < 4000){ ArmExtend_MOTOR.setPower(1 * gamepad1.left_trigger);}
-                    else {ArmExtend_MOTOR.setPower(0.5 * gamepad1.left_trigger);}
+                    if(ArmExtend_MOTOR.getCurrentPosition() < 4000){ ArmExtend_MOTOR.setPower(1 * gamepad2.right_trigger);}
+                    else {ArmExtend_MOTOR.setPower(0.5 * gamepad2.right_trigger);}
                 }
                 // If right trigger, extend arm proportional to amount with speed
-                else if (gamepad1.right_trigger > 0.1 && (ArmExtend_MOTOR.getCurrentPosition() > PullLimit)) {
-                    ArmExtend_MOTOR.setTargetPosition((int) ((ArmExtend_MOTOR.getCurrentPosition())-(1000 * gamepad1.right_trigger)));
+                else if (gamepad2.left_trigger > 0.1 && (ArmExtend_MOTOR.getCurrentPosition() > PullLimit)) {
+                    ArmExtend_MOTOR.setTargetPosition((int) ((ArmExtend_MOTOR.getCurrentPosition())-(1000 * gamepad2.left_trigger)));
                     ArmExtend_MOTOR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                     if(ArmExtend_MOTOR.getCurrentPosition() > 2500){
-                        ArmExtend_MOTOR.setPower(-1 * gamepad1.right_trigger);}
+                        ArmExtend_MOTOR.setPower(-1 * gamepad2.left_trigger);}
                     else {
-                        ArmExtend_MOTOR.setPower(-0.25 * gamepad1.right_trigger);
+                        ArmExtend_MOTOR.setPower(-0.45 * gamepad2.left_trigger);
                     }
                     if(ArmPullLimit.isPressed()) {
                      PullLimit = (ArmExtend_MOTOR.getCurrentPosition()+150);
@@ -167,7 +169,7 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
 
                 }
                 ///////////////
-                if (gamepad1.dpad_up && (ArmExtend_MOTOR.getCurrentPosition() < 500)  &&  (ArmUpLimit.isPressed())) { // If left trigger, extend arm propotional to amount with speed
+                if (gamepad2.dpad_up  &&  (ArmUpLimit.isPressed())) { // If left trigger, extend arm propotional to amount with speed
                     LastRotatePosition = ArmRotate_MOTOR.getCurrentPosition();
                     ArmRotate_MOTOR.setTargetPosition((int) ((ArmRotate_MOTOR.getCurrentPosition())+(1000)));
                     ArmRotate_MOTOR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
@@ -182,12 +184,12 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
 
                 }
                 // If right trigger, extend arm proportional to amount with speed
-                else if (gamepad1.dpad_down && (ArmExtend_MOTOR.getCurrentPosition() < 500) &&  !ArmdownLimit.isPressed()) {
+                else if (gamepad2.dpad_down  &&  !ArmdownLimit.isPressed()) {
                     LastRotatePosition = ArmRotate_MOTOR.getCurrentPosition();
                     ArmRotate_MOTOR.setTargetPosition((int) ((ArmRotate_MOTOR.getCurrentPosition())-(1000)));
                     ArmRotate_MOTOR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    ArmRotate_MOTOR.setPower(-0.5);
-                    /*   ServoFlipPosition = 0; */ // TODO // map
+                    ArmRotate_MOTOR.setPower(-0.25);
+
 
 
                 } else {
@@ -197,7 +199,14 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
 
 
                 }
-
+                if(ArmRotate_MOTOR.getCurrentPosition() > 1000 || !ArmUpLimit.isPressed()){
+                    ServoFlipPosition = 0;
+                    /*    ServoFlipPosition = 90;  //TODO /  map angle
+                     */
+                }
+                else {
+                    ServoFlipPosition = 1;
+                }
 
                 /////////////
                 if (gamepad1.x && gamepad2.x ){
@@ -206,19 +215,20 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
                 if (currentGamepad2.left_bumper && !previousGamepad2.left_bumper){ // left pixel logic
                     pixelZeroLock = !pixelZeroLock;
                     if(pixelZeroLock){
-                        //ServoZeroPostion = 90; // TODO // map
+                        ServoOnePosition = 1; //
+
                     }
                     else if(!pixelZeroLock){
-                        //ServoZeroPostion = 0; // TODO map
+                        ServoOnePosition = 0.75; //
                     }
                 }
                 if (currentGamepad2.right_bumper && !previousGamepad2.right_bumper){// right pixel logic
                     pixelOneLock = !pixelOneLock;
                     if(pixelOneLock){
-                        //ServoOnePostion = 90; // TODO map
+                        ServoZeroPosition =  0.75; // TODO map
                     }
                     else if(!pixelOneLock){
-                        //ServoOnePostion = 0; // TODO Map
+                        ServoZeroPosition = 1; // TODO Map
                     }
                 }
 
@@ -236,8 +246,8 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
                 telemetry.addData("Is rotate Motor Allow?", (ArmExtend_MOTOR.getCurrentPosition() < 500));
                 telemetry.addData("Extend Encoder Position (M)", ArmExtend_MOTOR.getCurrentPosition());
                 telemetry.addData("Plane Shoted", String.valueOf(planeShotInterlock));
-                telemetry.addData("PixelOneStatus", pixelOneLock);
-                telemetry.addData("PixelZeroStatus", pixelZeroLock);
+                telemetry.addData("PixelOneStatus", ServoOnePosition);
+                telemetry.addData("PixelZeroStatus", ServoZeroPosition);
                 telemetry.update();
             }
         } else if (TuningOpModes.DRIVE_CLASS.equals(TankDrive.class)) { // DONT CARE
