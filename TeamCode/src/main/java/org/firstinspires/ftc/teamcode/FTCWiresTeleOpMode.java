@@ -61,23 +61,26 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
 
         boolean pixelZeroLock = false;
         boolean pixelOneLock = false; // Logic for PixelLock1
-        int ExtendLimit = 5650;
-        int PullLimit = -500;
+        boolean triggerLock = false;
+        int ExtendLimit = 5200;
+        int PullLimit = -150;
         int RotateLimit = 0;
         int LastRotatePosition = 0;
+        double LastFlipPosition = 1;
+        double ArmRotateMUT = 1;
         double ServoZeroPosition = 1;
         double ServoOnePosition = 0.75;
         double ServoFlipPosition = 1;
 
 
+
+
         ArmExtend_MOTOR = hardwareMap.get(DcMotor.class,"ArmExtend_MOTOR");
         ArmExtend_MOTOR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);;
-        ArmExtend_MOTOR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         ArmRotate_MOTOR = hardwareMap.get(DcMotor.class,"ArmRotate_MOTOR");
         ArmRotate_MOTOR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);;
         ArmRotate_MOTOR.setDirection(DcMotorSimple.Direction.REVERSE);
-        ArmRotate_MOTOR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
 
 
@@ -115,8 +118,14 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
                 currentGamepad1.copy(gamepad1);
                 currentGamepad2.copy(gamepad2);
 
-                if(ArmExtend_MOTOR.getCurrentPosition() > 500){ // SLOW DOWN WHILE EXTEND
-                    SLOW_DOWN_FACTOR = 0.25;
+                if(gamepad2.right_trigger > 0.2){
+                    triggerLock = true;
+                }else{
+                    triggerLock = false;
+                }
+
+                if((ArmExtend_MOTOR.getCurrentPosition() > 1500)){ // SLOW DOWN WHILE EXTEND
+                    SLOW_DOWN_FACTOR = (0.44/(6000/ArmExtend_MOTOR.getCurrentPosition()));
 
                 }
                 else{
@@ -124,10 +133,10 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
                 }
                 drive.setDrivePowers(new PoseVelocity2d(
                         new Vector2d(
-                                -gamepad1.left_stick_y * SLOW_DOWN_FACTOR,
-                                -gamepad1.left_stick_x * SLOW_DOWN_FACTOR
+                                (-gamepad1.left_stick_y * SLOW_DOWN_FACTOR + -gamepad2.left_stick_y * SLOW_DOWN_FACTOR),
+                                (-gamepad1.left_stick_x * SLOW_DOWN_FACTOR +  -gamepad2.left_stick_x * SLOW_DOWN_FACTOR)
                         ),
-                        -gamepad1.right_stick_x * SLOW_DOWN_FACTOR
+                        (-gamepad1.right_stick_x * SLOW_DOWN_FACTOR + -gamepad2.right_stick_x * SLOW_DOWN_FACTOR)*0.75
                 ));
 
                 drive.updatePoseEstimate();
@@ -142,14 +151,33 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
                  ArmFlip_SERVO.setPosition(ServoFlipPosition); // TODO
 
 
+                if(ArmExtend_MOTOR.getCurrentPosition() < 1750)
+                {
+                    ArmRotateMUT = 1;
+                }
+                else
+                {
+
+                    ArmRotateMUT = 0.3;
+
+                }
+
                 if (gamepad2.right_trigger > 0.1 && (ArmExtend_MOTOR.getCurrentPosition() < ExtendLimit)) { // If left trigger, extend arm propotional to amount with speed
                     ArmExtend_MOTOR.setTargetPosition((int) ((ArmExtend_MOTOR.getCurrentPosition())+(1000 * gamepad2.right_trigger)));
                     ArmExtend_MOTOR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    if(ArmExtend_MOTOR.getCurrentPosition() < 4000){ ArmExtend_MOTOR.setPower(1 * gamepad2.right_trigger);}
-                    else {ArmExtend_MOTOR.setPower(0.5 * gamepad2.right_trigger);}
+                    if(ArmExtend_MOTOR.getCurrentPosition() < 2500)
+                    { ArmExtend_MOTOR.setPower(1 * gamepad2.right_trigger);
+
+                    }
+                    else
+                    {
+                        ArmExtend_MOTOR.setPower(0.5 * gamepad2.right_trigger);
+
+
+                    }
                 }
                 // If right trigger, extend arm proportional to amount with speed
-                else if (gamepad2.left_trigger > 0.1 && (ArmExtend_MOTOR.getCurrentPosition() > PullLimit)) {
+                else if (gamepad2.left_trigger > 0.1 /*&& (ArmExtend_MOTOR.getCurrentPosition() > PullLimit)*/) {
                     ArmExtend_MOTOR.setTargetPosition((int) ((ArmExtend_MOTOR.getCurrentPosition())-(1000 * gamepad2.left_trigger)));
                     ArmExtend_MOTOR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                     if(ArmExtend_MOTOR.getCurrentPosition() > 2500){
@@ -157,9 +185,7 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
                     else {
                         ArmExtend_MOTOR.setPower(-0.45 * gamepad2.left_trigger);
                     }
-                    if(ArmPullLimit.isPressed()) {
-                     PullLimit = (ArmExtend_MOTOR.getCurrentPosition()+150);
-                    }
+
                 }
 
                  else {
@@ -168,44 +194,64 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
                     ArmExtend_MOTOR.setPower(0);
 
                 }
+                if(ArmPullLimit.isPressed() && !triggerLock) {
+                    ArmExtend_MOTOR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                }
                 ///////////////
                 if (gamepad2.dpad_up  &&  (ArmUpLimit.isPressed())) { // If left trigger, extend arm propotional to amount with speed
                     LastRotatePosition = ArmRotate_MOTOR.getCurrentPosition();
                     ArmRotate_MOTOR.setTargetPosition((int) ((ArmRotate_MOTOR.getCurrentPosition())+(1000)));
                     ArmRotate_MOTOR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    if(ArmRotate_MOTOR.getCurrentPosition() > 1000){
-                        ArmRotate_MOTOR.setPower(0.15);
+                    if(ArmRotate_MOTOR.getCurrentPosition() > 1250 || (ArmRotate_MOTOR.getCurrentPosition() < 300)){
+                        ArmRotate_MOTOR.setPower(0.15 * ArmRotateMUT);
                         /*    ServoFlipPosition = 90;  //TODO /  map angle
                          */
                     }
                     else {
-                        ArmRotate_MOTOR.setPower(0.25);
+                        ArmRotate_MOTOR.setPower(0.4 * ArmRotateMUT);
                     }
 
                 }
                 // If right trigger, extend arm proportional to amount with speed
                 else if (gamepad2.dpad_down  &&  !ArmdownLimit.isPressed()) {
                     LastRotatePosition = ArmRotate_MOTOR.getCurrentPosition();
-                    ArmRotate_MOTOR.setTargetPosition((int) ((ArmRotate_MOTOR.getCurrentPosition())-(1000)));
+                    ArmRotate_MOTOR.setTargetPosition((int) ((ArmRotate_MOTOR.getCurrentPosition())-(750)));
                     ArmRotate_MOTOR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-                    ArmRotate_MOTOR.setPower(-0.25);
+                    if(ArmRotate_MOTOR.getCurrentPosition() > 800 || (ArmRotate_MOTOR.getCurrentPosition() < 300)){
+                        ArmRotate_MOTOR.setPower(-0.1 * ArmRotateMUT);
+                        /*    ServoFlipPosition = 90;  //TODO /  map angle
+                         */
+                    }
+                    else {
+                        ArmRotate_MOTOR.setPower(-0.4 * ArmRotateMUT);
+                    }
 
 
 
-                } else {
+
+
+
+                }
+                else if (gamepad2.dpad_down  &&  ArmdownLimit.isPressed() || ArmdownLimit.isPressed()) {
+                    LastRotatePosition = 0;
+                    ArmRotate_MOTOR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
+                    ArmRotate_MOTOR.setPower(0);
+
+
+
+                }else {
                     ArmRotate_MOTOR.setTargetPosition(LastRotatePosition);
                     ArmRotate_MOTOR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
                     ArmRotate_MOTOR.setPower(1);
 
 
                 }
-                if(ArmRotate_MOTOR.getCurrentPosition() > 1000 || !ArmUpLimit.isPressed()){
+                if((ArmRotate_MOTOR.getCurrentPosition() > 1000) && gamepad2.dpad_up && ServoFlipPosition != 0 ){
                     ServoFlipPosition = 0;
                     /*    ServoFlipPosition = 90;  //TODO /  map angle
                      */
-                }
-                else {
-                    ServoFlipPosition = 1;
+                } else if (gamepad2.dpad_down && (ArmRotate_MOTOR.getCurrentPosition() < 1000 && ArmRotate_MOTOR.getCurrentPosition() > 500)) {
+                    ServoFlipPosition = LastFlipPosition;
                 }
 
                 /////////////
@@ -231,7 +277,13 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
                         ServoZeroPosition = 1; // TODO Map
                     }
                 }
-
+                if((gamepad2.a && ArmRotate_MOTOR.getCurrentPosition() < 1000|| gamepad2.y && ArmRotate_MOTOR.getCurrentPosition() > 1000) && ServoFlipPosition != 1 ){
+                    ServoFlipPosition = ServoFlipPosition + 0.01;
+                    LastFlipPosition = ServoFlipPosition;
+                } else if ((gamepad2.y  && ArmRotate_MOTOR.getCurrentPosition() < 1000 || gamepad2.a && ArmRotate_MOTOR.getCurrentPosition() > 1000) && ServoFlipPosition != 0){
+                    ServoFlipPosition = ServoFlipPosition - 0.01;
+                    LastFlipPosition = ServoFlipPosition;
+                }
 
 
 
@@ -246,8 +298,8 @@ public class FTCWiresTeleOpMode extends LinearOpMode {
                 telemetry.addData("Is rotate Motor Allow?", (ArmExtend_MOTOR.getCurrentPosition() < 500));
                 telemetry.addData("Extend Encoder Position (M)", ArmExtend_MOTOR.getCurrentPosition());
                 telemetry.addData("Plane Shoted", String.valueOf(planeShotInterlock));
-                telemetry.addData("PixelOneStatus", ServoOnePosition);
-                telemetry.addData("PixelZeroStatus", ServoZeroPosition);
+                telemetry.addData("PixelZeroStatus", ServoOnePosition);
+                telemetry.addData("PixelOneStatus", ServoZeroPosition);
                 telemetry.update();
             }
         } else if (TuningOpModes.DRIVE_CLASS.equals(TankDrive.class)) { // DONT CARE

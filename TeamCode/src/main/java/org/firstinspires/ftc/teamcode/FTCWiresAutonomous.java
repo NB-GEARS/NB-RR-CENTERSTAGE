@@ -35,8 +35,11 @@ import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.ftc.Actions;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.checkerframework.checker.units.qual.A;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
@@ -51,8 +54,9 @@ import java.util.List;
 @Autonomous(name = "FTC Wires Autonomous Mode", group = "00-Autonomous", preselectTeleOp = "FTC Wires TeleOp")
 public class FTCWiresAutonomous extends LinearOpMode {
 
-    public static String TEAM_NAME = "NB GEARS"; //TODO: Enter team Name
-    public static int TEAM_NUMBER = 22999; //TODO: Enter team Number
+    private DcMotor ArmExtend_MOTOR;
+    public static String TEAM_NAME = "EDIT TEAM NAME"; //TODO: Enter team Name
+    public static int TEAM_NUMBER = 0; //TODO: Enter team Number
 
     private static final boolean USE_WEBCAM = true;  // true for webcam, false for phone camera
 
@@ -75,10 +79,20 @@ public class FTCWiresAutonomous extends LinearOpMode {
         RIGHT
     }
     public static IDENTIFIED_SPIKE_MARK_LOCATION identifiedSpikeMarkLocation = IDENTIFIED_SPIKE_MARK_LOCATION.LEFT;
+    private Servo PixelZeroServo;
+    private Servo PixelOneServo;
+    double ServoZeroPosition = 1;
+    double ServoOnePosition = 0.75;
 
     @Override
     public void runOpMode() throws InterruptedException {
+        PixelZeroServo = hardwareMap.get(Servo.class, "PixelZero_SERVO");  //TODO map to controller let controllelr know
+        PixelOneServo = hardwareMap.get(Servo.class, "PixelOne_SERVO");
+        ArmExtend_MOTOR = hardwareMap.get(DcMotor.class,"ArmExtend_MOTOR");
+        ArmExtend_MOTOR.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
+        PixelZeroServo.setPosition(ServoZeroPosition);
+        PixelOneServo.setPosition(ServoOnePosition);
         //Key Pay inputs to selecting Starting Position of robot
         selectStartingPosition();
         telemetry.addData("Selected Starting Position", startPosition);
@@ -106,14 +120,20 @@ public class FTCWiresAutonomous extends LinearOpMode {
             //Build parking trajectory based on last detected target by vision
             runAutonoumousMode();
         }
+
     }   // end runOpMode()
 
     public void runAutonoumousMode() {
         //Initialize Pose2d as desired
+        PixelZeroServo.setPosition(ServoZeroPosition);
+        PixelOneServo.setPosition(ServoOnePosition);
+        ArmExtend_MOTOR.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);;
+        ArmExtend_MOTOR.setTargetPosition(200);
+        ArmExtend_MOTOR.setMode(DcMotor.RunMode.RUN_TO_POSITION);
         Pose2d initPose = new Pose2d(0, 0, 0); // Starting Pose
         Pose2d moveBeyondTrussPose = new Pose2d(0,0,0);
         Pose2d dropPurplePixelPose = new Pose2d(0, 0, 0);
-        Pose2d midwayPose1 = new Pose2d(9.35, 0.95, Math.toRadians(0));
+        Pose2d midwayPose1 = new Pose2d(0,0,0);
         Pose2d midwayPose1a = new Pose2d(0,0,0);
         Pose2d intakeStack = new Pose2d(0,0,0);
         Pose2d midwayPose2 = new Pose2d(0,0,0);
@@ -126,102 +146,107 @@ public class FTCWiresAutonomous extends LinearOpMode {
         moveBeyondTrussPose = new Pose2d(15,0,0);
 
         switch (startPosition) {
-            case BLUE_LEFT: //done
-                initPose = new Pose2d(11.88, 59.60, Math.toRadians(-90));
+            case BLUE_LEFT:
                 drive = new MecanumDrive(hardwareMap, initPose);
                 switch(identifiedSpikeMarkLocation){
                     case LEFT:
-                        dropPurplePixelPose = new Pose2d(19.00, 29.96, Math.toRadians(0));
-                        dropYellowPixelPose = new Pose2d(50.77, 35.63, Math.toRadians(0.00));
+                        dropPurplePixelPose = new Pose2d(26, 8, Math.toRadians(0));
+                        dropYellowPixelPose = new Pose2d(23, 36, Math.toRadians(-90));
                         break;
                     case MIDDLE:
-                        dropPurplePixelPose = new Pose2d(12, 27, Math.toRadians(-90));
-                        dropYellowPixelPose = new Pose2d(50.77, 35.63, Math.toRadians(0.00));
+                        dropPurplePixelPose = new Pose2d(30, 3, Math.toRadians(0));
+                        dropYellowPixelPose = new Pose2d(30, 36,  Math.toRadians(-90));
                         break;
                     case RIGHT:
-                        dropPurplePixelPose = new Pose2d(4, 31.01, Math.toRadians(180));
-                        dropYellowPixelPose = new Pose2d(50.77, 35.63, Math.toRadians(0.00));
+                        dropPurplePixelPose = new Pose2d(30, -9, Math.toRadians(-45));
+                        dropYellowPixelPose = new Pose2d(37, 36, Math.toRadians(-90));
                         break;
                 }
-                midwayPose1 = new Pose2d(12.30, 56.44, Math.toRadians(0));
+                midwayPose1 = new Pose2d(14, 13, Math.toRadians(-45));
                 waitSecondsBeforeDrop = 2; //TODO: Adjust time to wait for alliance partner to move from board
-                parkPose = new Pose2d(47.61, 59.18, Math.toRadians(270));
+                parkPose = new Pose2d(20, 17, Math.toRadians(-90));
                 break;
 
-            case RED_RIGHT: // done
-                initPose = new Pose2d(-36.47, -61.07, Math.toRadians(90.00));
+            case RED_RIGHT:
                 drive = new MecanumDrive(hardwareMap, initPose);
                 switch(identifiedSpikeMarkLocation){
                     case LEFT:
-                        dropPurplePixelPose = new Pose2d(3.68, -30.80, Math.toRadians(180));
-                        dropYellowPixelPose = new Pose2d(54.34, -37.94, Math.toRadians(0));
+                        dropPurplePixelPose = new Pose2d(30, 9, Math.toRadians(45));
+                        dropYellowPixelPose = new Pose2d(21, -36, Math.toRadians(270));
                         break;
                     case MIDDLE:
-                        dropPurplePixelPose = new Pose2d(11.67, -28.91, Math.toRadians(90));
-                        dropYellowPixelPose = new Pose2d(54.34, -37.94, Math.toRadians(0));
+                        dropPurplePixelPose = new Pose2d(30, -3, Math.toRadians(0));
+                        dropYellowPixelPose = new Pose2d(29, -36,  Math.toRadians(270));
                         break;
                     case RIGHT:
-                        dropPurplePixelPose = new Pose2d(21.13, -31.01, Math.toRadians(0));
-                        dropYellowPixelPose = new Pose2d(54.34, -37.94, Math.toRadians(0));
+                        dropPurplePixelPose = new Pose2d(26, -8, Math.toRadians(0));
+                        dropYellowPixelPose = new Pose2d(37, -36, Math.toRadians(270));
                         break;
                 }
-                midwayPose1 = new Pose2d(14, -13, Math.toRadians(45));
+                midwayPose1 = new Pose2d(14, -13, Math.toRadians(135));
                 waitSecondsBeforeDrop = 2; //TODO: Adjust time to wait for alliance partner to move from board
-                parkPose = new Pose2d(8, -30, Math.toRadians(90));
+                parkPose = new Pose2d(39, -36, Math.toRadians(270));
                 break;
 
-            case BLUE_RIGHT: // done
-                initPose = new Pose2d(-36.47, 60.44, Math.toRadians(-90));
+            case BLUE_RIGHT:
                 drive = new MecanumDrive(hardwareMap, initPose);
                 switch(identifiedSpikeMarkLocation){
                     case LEFT:
-                        dropPurplePixelPose = new Pose2d(-26.80, 29.96, Math.toRadians(0));
-                        dropYellowPixelPose = new Pose2d(50.77, 35.63, Math.toRadians(0.00));
+                        dropPurplePixelPose = new Pose2d(27, 9, Math.toRadians(45));
+                        dropYellowPixelPose = new Pose2d(27, 86, Math.toRadians(-90));
                         break;
                     case MIDDLE:
-                        dropPurplePixelPose = new Pose2d(-36.05, 26.38, Math.toRadians(-90.0));
-                        dropYellowPixelPose = new Pose2d(50.77, 35.63, Math.toRadians(0.00));
+                        dropPurplePixelPose = new Pose2d(30, -3, Math.toRadians(0));
+                        dropYellowPixelPose = new Pose2d(34, 86, Math.toRadians(-90));
                         break;
                     case RIGHT:
-                        dropPurplePixelPose = new Pose2d(-42.78, 30.17, Math.toRadians(180));
-                        dropYellowPixelPose = new Pose2d(50.77, 35.63, Math.toRadians(0.00));
+                        dropPurplePixelPose = new Pose2d(26, -8, Math.toRadians(0));
+                        dropYellowPixelPose = new Pose2d(43, 86, Math.toRadians(-90));
                         break;
                 }
                 midwayPose1 = new Pose2d(8, -8, Math.toRadians(0));
+                midwayPose1a = new Pose2d(18, -18, Math.toRadians(-90));
+                intakeStack = new Pose2d(52, -19,Math.toRadians(-90));
+                midwayPose2 = new Pose2d(52, 62, Math.toRadians(-90));
                 waitSecondsBeforeDrop = 2; //TODO: Adjust time to wait for alliance partner to move from board
-                parkPose = new Pose2d(47.61, 59.18, Math.toRadians(270));
+                parkPose = new Pose2d(8, 30, Math.toRadians(-90));
                 break;
 
-            case RED_LEFT:  //done
-                initPose = new Pose2d(10.62, -59.81, Math.toRadians(90));
+            case RED_LEFT:
                 drive = new MecanumDrive(hardwareMap, initPose);
                 switch(identifiedSpikeMarkLocation){
                     case LEFT:
-                        dropPurplePixelPose = new Pose2d(-45.09, -30.38, Math.toRadians(180));
-                        dropYellowPixelPose = new Pose2d(57.71, -36.47, Math.toRadians(0));
+                        dropPurplePixelPose = new Pose2d(26, 8, Math.toRadians(0));
+                        dropYellowPixelPose = new Pose2d(37, -86, Math.toRadians(90));
                         break;
                     case MIDDLE:
-                        dropPurplePixelPose = new Pose2d(-36.05, -26.38, Math.toRadians(90));
-                        dropYellowPixelPose = new Pose2d(57.71, -36.47, Math.toRadians(0));
+                        dropPurplePixelPose = new Pose2d(30, -3, Math.toRadians(0));
+                        dropYellowPixelPose = new Pose2d(29, -86, Math.toRadians(90));
                         break;
                     case RIGHT:
-                        dropPurplePixelPose = new Pose2d(-26.80, -30.59, Math.toRadians(0));
-                        dropYellowPixelPose = new Pose2d(57.71, -36.47, Math.toRadians(0));
+                        dropPurplePixelPose = new Pose2d(27, -9, Math.toRadians(-45));
+                        dropYellowPixelPose = new Pose2d(21, -86, Math.toRadians(90));
                         break;
                 }
+                midwayPose1 = new Pose2d(8, 8, Math.toRadians(0));
+                midwayPose1a = new Pose2d(18, 18, Math.toRadians(90));
+                intakeStack = new Pose2d(52, 19,Math.toRadians(90));
+                midwayPose2 = new Pose2d(52, -62, Math.toRadians(90));
                 waitSecondsBeforeDrop = 2; //TODO: Adjust time to wait for alliance partner to move from board
-                parkPose = new Pose2d(50, -84, Math.toRadians(90));
+                parkPose = new Pose2d(-39, -13, Math.toRadians(90));
                 break;
         }
 
         //Move robot to dropPurplePixel based on identified Spike Mark Location
         Actions.runBlocking(
                 drive.actionBuilder(drive.pose)
+                        .strafeToLinearHeading(moveBeyondTrussPose.position, moveBeyondTrussPose.heading)
                         .strafeToLinearHeading(dropPurplePixelPose.position, dropPurplePixelPose.heading)
                         .build());
 
         //TODO : Code to drop Purple Pixel on Spike Mark
-        safeWaitSeconds(2);
+        PixelOneServo.setPosition(1);
+        safeWaitSeconds(1);
 
         //Move robot to midwayPose1
         Actions.runBlocking(
@@ -229,6 +254,11 @@ public class FTCWiresAutonomous extends LinearOpMode {
                         .strafeToLinearHeading(midwayPose1.position, midwayPose1.heading)
                         .build());
 
+        //For Blue Right and Red Left, intake pixel from stack
+        if (startPosition == START_POSITION.BLUE_RIGHT ||
+                startPosition == START_POSITION.RED_LEFT) {
+
+        }
 
         safeWaitSeconds(waitSecondsBeforeDrop);
 
@@ -241,6 +271,7 @@ public class FTCWiresAutonomous extends LinearOpMode {
 
 
         //TODO : Code to drop Pixel on Backdrop
+        PixelZeroServo.setPosition(0);
         safeWaitSeconds(1);
 
         //Move robot to park in Backstage
@@ -249,6 +280,7 @@ public class FTCWiresAutonomous extends LinearOpMode {
                         .strafeToLinearHeading(parkPose.position, parkPose.heading)
                         //.splineToLinearHeading(parkPose,0)
                         .build());
+
     }
 
 
@@ -306,14 +338,14 @@ public class FTCWiresAutonomous extends LinearOpMode {
         // Create the vision portal the easy way.
         if (USE_WEBCAM) {
             visionPortal = VisionPortal.easyCreateWithDefaults(
-                hardwareMap.get(WebcamName.class, "Webcam 1"), tfod);
+                    hardwareMap.get(WebcamName.class, "Webcam 1"), tfod);
         } else {
             visionPortal = VisionPortal.easyCreateWithDefaults(
-                BuiltinCameraDirection.BACK, tfod);
+                    BuiltinCameraDirection.BACK, tfod);
         }
 
         // Set confidence threshold for TFOD recognitions, at any time.
-        tfod.setMinResultConfidence(0.20f);
+        tfod.setMinResultConfidence(0.095f);
 
     }   // end method initTfod()
 
@@ -332,7 +364,7 @@ public class FTCWiresAutonomous extends LinearOpMode {
             identifiedSpikeMarkLocation = IDENTIFIED_SPIKE_MARK_LOCATION.LEFT;
         }
 
-            // Step through the list of recognitions and display info for each one.
+        // Step through the list of recognitions and display info for each one.
         for (Recognition recognition : currentRecognitions) {
             double x = (recognition.getLeft() + recognition.getRight()) / 2 ;
             double y = (recognition.getTop()  + recognition.getBottom()) / 2 ;
